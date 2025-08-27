@@ -1,188 +1,21 @@
 <!doctype html>
-<html>
-<head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<title>Rope-Bot (vanilla Canvas)</title>
+<meta charset="utf-8">
+<title>Uta — Works</title>
 <style>
-
-  html,body { margin:0; height:100%; background:#000; touch-action:none; }
-
-  canvas { width:100vw; height:100vh; display:block; }
+  body{margin:0;background:#000;color:#0ff;font:16px/1.7 system-ui}
+  .wrap{max-width:760px;margin:40px auto;padding:0 16px}
+  h1{margin:0 0 8px}
+  ul{padding:0;margin:16px 0 0;list-style:none}
+  li{margin:10px 0}
+  a{color:#9ff;text-decoration:none}
+  a:hover{text-decoration:underline}
 </style>
-</head>
-<body>
-<canvas id="cv"></canvas>
-<script>
-
-const canvas = document.getElementById('cv');
-
-const ctx = canvas.getContext('2d');
-
-function resize(){ canvas.width = innerWidth; canvas.height = innerHeight; }
-
-addEventListener('resize', resize, {passive:true}); resize();
-
-const SEG_NUM=28, SEG_LEN=16, FOLLOW=0.15, DAMP=0.88;
-
-let target={x:canvas.width*0.35,y:canvas.height*0.35};
-
-let head  ={x:canvas.width*0.25,y:canvas.height*0.30};
-
-let seg=Array.from({length:SEG_NUM},(_,i)=>({x:head.x-i*SEG_LEN,y:head.y}));
-
-addEventListener('pointermove',e=>{target.tx=e.clientX; target.ty=e.clientY},{passive:true});
-
-addEventListener('pointerdown',e=>{target.tx=e.clientX; target.ty=e.clientY},{passive:true});
-
-const particles=[];
-
-function lerp(a,b,t){return a+(b-a)*t;}
-
-function drawGrid(){
-
-  ctx.save();
-
-  ctx.strokeStyle='rgba(0,255,200,0.35)'; ctx.lineWidth=1;
-
-  const w=canvas.width,h=canvas.height, step=50, tilt=0.45, vanishY=h*0.65;
-
-  ctx.beginPath();
-
-  for(let x=-w;x<w*2;x+=step){
-
-    const x2=x+(w*0.5-x)*tilt; ctx.moveTo(x,vanishY); ctx.lineTo(x2,h);
-
-  }
-
-  for(let y=vanishY;y<h;y+=step){
-
-    const t=(y-vanishY)/(h-vanishY);
-
-    const l=0+(w*0.25-0)*(t*tilt), r=w+(w*0.75-w)*(t*tilt);
-
-    ctx.moveTo(l,y); ctx.lineTo(r,y);
-
-  }
-
-  ctx.stroke(); ctx.restore();
-
-}
-
-function drawGate(hx,hy){
-
-  const w=canvas.width,h=canvas.height,gx=w*0.85,gy=h*0.8;
-
-  const a=Math.max(40,220-(Math.hypot(hx-gx,hy-gy)/w)*180);
-
-  ctx.save(); ctx.strokeStyle=`rgba(120,160,255,${a/255})`; ctx.lineWidth=3;
-
-  for(let i=0;i<6;i++){ctx.beginPath();ctx.arc(gx,gy,110-i*12,Math.PI,Math.PI*2);ctx.stroke();}
-
-  ctx.fillStyle='rgba(120,160,255,0.07)'; ctx.beginPath(); ctx.ellipse(gx,gy,130,45,0,0,Math.PI*2); ctx.fill();
-
-  ctx.restore();
-
-}
-
-function pushTrail(x,y){
-
-  particles.push({x,y,a:180,r:1+Math.random()*2,vx:(Math.random()-0.5)*0.8,vy:(Math.random()-0.6)*0.8});
-
-  if(particles.length>500) particles.shift();
-
-}
-
-function drawTrail(){
-
-  for(const p of particles){
-
-    ctx.fillStyle=`rgba(255,200,120,${p.a/255})`;
-
-    ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2); ctx.fill();
-
-    p.x+=p.vx; p.y+=p.vy; p.a-=3; p.r*=0.99;
-
-  }
-
-}
-
-function loop(){
-
-  const w=canvas.width,h=canvas.height;
-
-  const mx=Math.max(0,Math.min(w,target.tx??target.x));
-
-  const my=Math.max(0,Math.min(h,target.ty??target.y));
-
-  target.x=lerp(target.x,mx,0.20); target.y=lerp(target.y,my,0.20);
-
-  head.x+= (target.x-head.x)*FOLLOW;
-
-  head.y+= (target.y-head.y)*FOLLOW;
-
-  seg[0].x+= (head.x-seg[0].x)*0.6;
-
-  seg[0].y+= (head.y-seg[0].y)*0.6;
-
-  for(let i=1;i<SEG_NUM;i++){
-
-    const a=seg[i-1], b=seg[i], dx=a.x-b.x, dy=a.y-b.y;
-
-    const d=Math.max(1,Math.hypot(dx,dy)), t=(d-SEG_LEN)/d;
-
-    b.x += dx*t*0.5; b.y += dy*t*0.5;
-
-    b.x = lerp(b.x, a.x-(a.x-b.x)*DAMP, 0.2);
-
-    b.y = lerp(b.y, a.y-(a.y-b.y)*DAMP, 0.2);
-
-  }
-
-  ctx.clearRect(0,0,w,h);
-
-  drawGrid(); drawTrail(); drawGate(head.x,head.y);
-
-  for(let i=0;i<SEG_NUM-1;i++){
-
-    const a=seg[i], b=seg[i+1], d=Math.max(1,Math.hypot(a.x-b.x,a.y-b.y));
-
-    const nx=(a.y-b.y)/d, ny=(b.x-a.x)/d, t=i/(SEG_NUM-1);
-
-    const w1=16*(1-t)+6*t, w2=w1*0.9;
-
-    ctx.fillStyle='rgba(255,120,255,0.63)';
-
-    ctx.beginPath();
-
-    ctx.moveTo(a.x+nx*w1,a.y+ny*w1);
-
-    ctx.lineTo(b.x+nx*w2,b.y+ny*w2);
-
-    ctx.lineTo(b.x-nx*w2,b.y-ny*w2);
-
-    ctx.lineTo(a.x-nx*w1,a.y-ny*w1);
-
-    ctx.closePath(); ctx.fill();
-
-  }
-
-  const tail=seg[SEG_NUM-1]; pushTrail(tail.x,tail.y);
-
-  const pulse=0.6+0.4*Math.sin(performance.now()*0.007);
-
-  ctx.fillStyle='rgba(255,120,255,0.86)'; ctx.beginPath(); ctx.arc(head.x,head.y,28+6*pulse,0,Math.PI*2); ctx.fill();
-
-  ctx.fillStyle='rgba(0,0,0,0.55)'; ctx.beginPath(); ctx.arc(head.x-6,head.y-3,6,0,Math.PI*2); ctx.fill();
-
-  ctx.beginPath(); ctx.arc(head.x+4,head.y+2,4,0,Math.PI*2); ctx.fill();
-
-  requestAnimationFrame(loop);
-
-}
-
-requestAnimationFrame(loop);
-</script>
-</body>
-</html>
+<div class="wrap">
+  <h1>Uta — Works</h1>
+  <p>ポートフォリオの入口ページです。下から各コンテンツへ。</p>
+  <ul>
+    <li>▶ <a href="./gamebook/">Gamebook</a></li>
+    <li>▶ <a href="./robot/sim/">Rope Robot (Canvas Sim)</a></li>
+  </ul>
+</div>
  

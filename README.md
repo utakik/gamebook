@@ -2,5 +2,5 @@
  
 Practice box for Rope robot making
  
-🌐 公開ページ: [https://utakik.github.io/rope-bot/](https://utakik.github.io/rope-bot/)
+📚Gamebook(https://utakik.github.io/gamebook/index.html)
  

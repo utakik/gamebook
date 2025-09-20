@@ -1,6 +1,6 @@
-# rope-bot
+# Gamebook
  
-Practice box for Rope robot making
+Welcome to parallel structure world
  
 📚[Gamebook](https://utakik.github.io/gamebook/index.html)
  
